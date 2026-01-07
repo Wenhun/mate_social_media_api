@@ -3,7 +3,7 @@ from social_media.models import Profile, Post, Like
 
 from django.db.models.query import QuerySet
 from rest_framework.decorators import api_view
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, generics
 from rest_framework.serializers import ModelSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -47,6 +47,8 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
             return ProfileListSerializer
         if self.action == "upload_image":
             return ProfileImageSerializer
+        if self.action == "create":
+            return UserSerializer
 
         return super().get_serializer_class()
 

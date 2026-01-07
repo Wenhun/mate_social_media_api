@@ -10,4 +10,6 @@ router.register(r"profiles", ProfileViewSet, basename="profiles")
 router.register(r"posts", PostViewSet, basename="posts")
 router.register(r"likes", LikeViewSet, basename="likes")
 
-urlpatterns = [path("", include(router.urls))]
+urlpatterns = [
+    path("", include(router.urls)),
+]
