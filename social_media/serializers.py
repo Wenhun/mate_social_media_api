@@ -2,14 +2,6 @@ from rest_framework import serializers
 from social_media.models import Profile, Post, Like
 
 
-class ProfileSerializer(serializers.ModelSerializer):
-    user = serializers.CharField(source="user.username", read_only=True)
-
-    class Meta:
-        model = Profile
-        fields = ("id", "user", "bio", "follows", "image")
-
-
 class ProfileListSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
 
@@ -32,6 +24,16 @@ class ProfileFollowersSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ("id", "followers")
+
+
+class ProfileDetailSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="user.username", read_only=True)
+    follows = ProfileListSerializer(read_only=True, many=True)
+    following = ProfileListSerializer(source="followed_by", many=True)
+
+    class Meta:
+        model = Profile
+        fields = ("id", "user", "bio", "follows", "following", "image")
 
 
 class ProfileImageSerializer(serializers.ModelSerializer):
@@ -69,14 +71,15 @@ class LikeSerializer(serializers.ModelSerializer):
 
 
 class LikeDetailSerializer(LikeSerializer):
-    user = ProfileSerializer(read_only=True, many=False)
+    user = serializers.CharField(source="user.username", read_only=True)
     post = PostSerializer(read_only=True, many=False)
 
 
 class LikeListSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
-    post = serializers.CharField(source="post.text", read_only=True)
+    post_by = serializers.CharField(source="post.user.username", read_only=True)
+    post_text = serializers.CharField(source="post.text", read_only=True)
 
     class Meta:
         model = Like
-        fields = ("id", "user", "post", "updated_at")
+        fields = ("id", "user", "post_by", "post_text", "updated_at")
