@@ -1,6 +1,8 @@
-import social_media.serializers as serializer
+from social_media.serializers import *
 from social_media.models import Profile, Post, Like
 
+from django.db.models.query import QuerySet
+from rest_framework.decorators import api_view
 from rest_framework import viewsets, status
 from rest_framework.serializers import ModelSerializer
 from rest_framework.decorators import action
@@ -11,57 +13,71 @@ from rest_framework.request import Request
 from typing import Type
 
 
-class ProfileViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Profile model."""
+class UploadImageMixin:
+    @action(
+        methods=["POST"],
+        detail=True,
+        url_path="upload-image",
+    )
+    def upload_image(self, request: Request, pk: int = None) -> Response:  # type: ignore
+        """Endpoint for uploading an image to a specific object"""
 
+        obj = self.get_object()  # type: ignore
+        serializer = self.get_serializer(obj, data=request.data)  # type: ignore
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
     queryset = Profile.objects.all()
+    serializer_class = ProfileDetailSerializer
 
-    @action(list=True, methods=["get"])
-    def followers(self, request: Request, pk=None):
-        user = self.get_object()
-        qs = Profile.objects.filter(target=user)
-        serializer = serializer.ProfileFollowsSerializer(qs, many=True)
-        return Response(serializer.data)
-
-    @action(list=True, methods=["get"])
-    def following(self, request, pk=None):
-        user = self.get_object()
-        qs = Profile.objects.filter(user=user)
-        serializer = serializer.ProfileFollowersSerializer(qs, many=True)
-        return Response(serializer.data)
-
-    def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
-        """Return the appropriate serializer class based on the request."""
-
-        if self.action == "list":
-            return serializer.ProfileListSerializer
-
-        if self.action == "retrieve":
-            return serializer.ProfileSerializer
-
+    def get_serializer_class(self):  # type: ignore
         if self.action == "followers":
-            return serializer.ProfileFollowsSerializer
-
+            return ProfileFollowersSerializer
         if self.action == "following":
-            return serializer.ProfileFollowersSerializer
+            return ProfileFollowsSerializer
+        if self.action == "retrieve":
+            return ProfileDetailSerializer
+        if self.action == "list":
+            return ProfileListSerializer
+        if self.action == "upload_image":
+            return ProfileImageSerializer
 
         return super().get_serializer_class()
 
+    def _serialize_profile(self, request):
+        profile = self.get_object()
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-class PostViewSet(viewsets.ModelViewSet):
+    @action(methods=["GET"], detail=True, url_path="followers")
+    def followers(self, request, pk=None):
+        return self._serialize_profile(request)
+
+    @action(methods=["GET"], detail=True, url_path="following")
+    def following(self, request, pk=None):
+        return self._serialize_profile(request)
+
+
+class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
     """ViewSet for the Post model."""
 
     queryset = Post.objects.select_related("user")
-    serializer_class = serializer.PostSerializer
+    serializer_class = PostSerializer
 
     def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
         """Return the appropriate serializer class based on the request."""
 
         if self.action == "list":
-            return serializer.PostListSerializer
+            return PostListSerializer
 
         if self.action == "retrieve":
-            return serializer.PostSerializer
+            return PostSerializer
 
         return super().get_serializer_class()
 
@@ -70,15 +86,18 @@ class LikeViewSet(viewsets.ModelViewSet):
     """ViewSet for the Like model."""
 
     queryset = Like.objects.select_related("user", "post")
-    serializer_class = serializer.LikeSerializer
+    serializer_class = LikeSerializer
 
     def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
         """Return the appropriate serializer class based on the request."""
 
         if self.action == "list":
-            return serializer.LikeListSerializer
+            return LikeListSerializer
 
         if self.action == "retrieve":
-            return serializer.LikeDetailSerializer
+            return LikeDetailSerializer
+
+        if self.action == "upload_image":
+            return PostImageSerializer
 
         return super().get_serializer_class()
