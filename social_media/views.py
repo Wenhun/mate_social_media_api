@@ -8,6 +8,7 @@ from rest_framework.serializers import ModelSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.request import Request
+from django.contrib.auth import get_user_model
 
 
 from typing import Type
@@ -64,6 +65,13 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
     @action(methods=["GET"], detail=True, url_path="following")
     def following(self, request, pk=None):
         return self._serialize_profile(request)
+
+    def destroy(self, request, *args, **kwargs):
+        """Rewrite function. Function delete User with Cascade deleting Profile"""
+
+        instance = self.get_object()
+        self.perform_destroy(get_user_model().objects.get(pk=instance.user.pk))
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
