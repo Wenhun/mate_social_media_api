@@ -73,6 +73,17 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         self.perform_destroy(get_user_model().objects.get(pk=instance.user.pk))
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def get_queryset(self):  # type: ignore
+        """Retrieve the profiles with filters"""
+        username = self.request.query_params.get("username")  # type: ignore
+
+        queryset = self.queryset
+
+        if username:
+            queryset = queryset.filter(user__username__icontains=username)
+
+        return queryset.distinct()
+
 
 class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
     """ViewSet for the Post model."""
