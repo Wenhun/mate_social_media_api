@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
-from social_media.models import Profile, Post, PostLike
+from social_media.models import Profile, Post, PostLike, Comment
 
 from typing import Type
 
@@ -46,20 +46,41 @@ class ProfileImageSerializer(serializers.ModelSerializer):
         fields = ("id", "image")
 
 
-class PostSerializer(serializers.ModelSerializer):
+class CommentsSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
 
     class Meta:
+        model = Comment
+        fields = ("id", "user", "text", "created_at", "updated_at", "post", "image")
+
+
+class PostSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="user.username", read_only=True)
+    comments = CommentsSerializer(read_only=True, many=True)
+    count_likes = serializers.IntegerField(source="post_likes.count", read_only=True)
+
+    class Meta:
         model = Post
-        fields = ("id", "user", "text", "created_at", "updated_at", "image")
+        fields = (
+            "id",
+            "user",
+            "text",
+            "created_at",
+            "updated_at",
+            "comments",
+            "image",
+            "count_likes",
+        )
 
 
 class PostListSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
+    count_likes = serializers.IntegerField(source="post_likes.count", read_only=True)
+    count_comments = serializers.IntegerField(source="comments.count", read_only=True)
 
     class Meta:
         model = Post
-        fields = ("id", "user", "text", "updated_at")
+        fields = ("id", "user", "text", "updated_at", "count_comments", "count_likes")
 
 
 class PostImageSerializer(serializers.ModelSerializer):
