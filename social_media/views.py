@@ -102,6 +102,17 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         return super().get_serializer_class()
 
+    def get_queryset(self) -> QuerySet[Post]:  # type: ignore
+        """Retrieve the profiles with filters"""
+        hashtag = self.request.query_params.get("hashtag")  # type: ignore
+
+        queryset = self.queryset
+
+        if hashtag:
+            queryset = queryset.filter(text__regex=rf"(^|\s)#{hashtag}(?=\s|$)")
+
+        return queryset.distinct()
+
 
 class LikeViewSet(viewsets.ModelViewSet):
     """ViewSet for the Like model."""
