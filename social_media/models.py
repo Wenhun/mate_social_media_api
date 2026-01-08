@@ -51,6 +51,7 @@ class ContentBase(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ["-updated_at"]
 
 
 class Post(ContentBase):
