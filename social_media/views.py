@@ -100,6 +100,9 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         if self.action == "retrieve":
             return PostSerializer
 
+        if self.action == "upload_image":
+            return PostImageSerializer
+
         return super().get_serializer_class()
 
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
@@ -112,24 +115,3 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
             queryset = queryset.filter(text__regex=rf"(^|\s)#{hashtag}(?=\s|$)")
 
         return queryset.distinct()
-
-
-class LikeViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Like model."""
-
-    queryset = PostLike.objects.select_related("user", "post")
-    serializer_class = LikeSerializer
-
-    def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
-        """Return the appropriate serializer class based on the request."""
-
-        if self.action == "list":
-            return LikeListSerializer
-
-        if self.action == "retrieve":
-            return LikeDetailSerializer
-
-        if self.action == "upload_image":
-            return PostImageSerializer
-
-        return super().get_serializer_class()
