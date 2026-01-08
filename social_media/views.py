@@ -37,7 +37,7 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
     queryset = Profile.objects.all()
     serializer_class = ProfileDetailSerializer
 
-    def get_serializer_class(self):  # type: ignore
+    def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
         if self.action == "followers":
             return ProfileFollowersSerializer
         if self.action == "following":
@@ -53,27 +53,27 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         return super().get_serializer_class()
 
-    def _serialize_profile(self, request):
+    def _serialize_profile(self, request: Request) -> Type[Response]:
         profile = self.get_object()
         serializer = self.get_serializer(profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["GET"], detail=True, url_path="followers")
-    def followers(self, request, pk=None):
+    def followers(self, request, pk=None) -> Type[Response]:
         return self._serialize_profile(request)
 
     @action(methods=["GET"], detail=True, url_path="following")
-    def following(self, request, pk=None):
+    def following(self, request, pk=None) -> Type[Response]:
         return self._serialize_profile(request)
 
-    def destroy(self, request, *args, **kwargs):
+    def destroy(self, request: Request, *args, **kwargs) -> Type[Response]:  # type: ignore
         """Rewrite function. Function delete User with Cascade deleting Profile"""
 
         instance = self.get_object()
         self.perform_destroy(get_user_model().objects.get(pk=instance.user.pk))
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get_queryset(self):  # type: ignore
+    def get_queryset(self) -> QuerySet[Profile]:  # type: ignore
         """Retrieve the profiles with filters"""
         username = self.request.query_params.get("username")  # type: ignore
 
