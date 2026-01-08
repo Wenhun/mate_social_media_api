@@ -43,25 +43,54 @@ def create_profile(
         user_profile.save()
 
 
-class Post(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="posts")
+class ContentBase(models.Model):
     text = models.CharField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     image = models.ImageField(null=True, blank=True, upload_to=get_file_path)
 
+    class Meta:
+        abstract = True
+
+
+class Post(ContentBase):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="posts")
+
     def __str__(self) -> str:
         return f"Post (id: {self.pk}) by {self.user.username}: {self.text}"
 
 
-class Like(models.Model):
-    class Meta:
+class Comment(ContentBase):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
+
+    def __str__(self) -> str:
+        return f"Comment (id: {self.pk}) by {self.user.username} to post {self.post.pk}: {self.text}"
+
+
+class PostLike(models.Model):
+    class Meta:  # type: ignore
         unique_together = ("user", "post")
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="likes")
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="likes")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="post_likes")
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="post_likes")
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
         return f"Post (id: {self.post.pk}) is liked by {self.user.username}"
+
+
+class CommentLike(models.Model):
+    class Meta:  # type: ignore
+        unique_together = ("user", "comment")
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="comment_likes"
+    )
+    comment = models.ForeignKey(
+        Comment, on_delete=models.CASCADE, related_name="comment_likes"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Comment (id: {self.comment.pk}) is liked by {self.user.username}"

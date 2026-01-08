@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
-from social_media.models import Profile, Post, Like
+from social_media.models import Profile, Post, PostLike
 
 from typing import Type
 
@@ -70,8 +70,8 @@ class PostImageSerializer(serializers.ModelSerializer):
 
 class LikeSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Like
-        fields = ("id", "user", "post", "created_at", "updated_at")
+        model = PostLike
+        fields = ("id", "user", "post", "created_at")
 
 
 class LikeDetailSerializer(LikeSerializer):
@@ -85,8 +85,8 @@ class LikeListSerializer(serializers.ModelSerializer):
     post_text = serializers.CharField(source="post.text", read_only=True)
 
     class Meta:
-        model = Like
-        fields = ("id", "user", "post_by", "post_text", "updated_at")
+        model = PostLike
+        fields = ("id", "user", "post_by", "post_text")
 
 
 class UserSerializer(serializers.ModelSerializer):

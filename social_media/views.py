@@ -1,5 +1,5 @@
 from social_media.serializers import *
-from social_media.models import Profile, Post, Like
+from social_media.models import Profile, Post, PostLike
 
 from django.db.models.query import QuerySet
 from rest_framework.decorators import api_view
@@ -117,7 +117,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 class LikeViewSet(viewsets.ModelViewSet):
     """ViewSet for the Like model."""
 
-    queryset = Like.objects.select_related("user", "post")
+    queryset = PostLike.objects.select_related("user", "post")
     serializer_class = LikeSerializer
 
     def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
