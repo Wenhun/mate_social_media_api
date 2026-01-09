@@ -59,15 +59,15 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["GET"], detail=True, url_path="followers")
-    def followers(self, request, pk=None) -> Type[Response]:
+    def followers(self, request: Request, pk=None) -> Type[Response]:
         return self._serialize_profile(request)
 
     @action(methods=["GET"], detail=True, url_path="following")
-    def following(self, request, pk=None) -> Type[Response]:
+    def following(self, request: Request, pk=None) -> Type[Response]:
         return self._serialize_profile(request)
 
     def destroy(self, request: Request, *args, **kwargs) -> Type[Response]:  # type: ignore
-        """Rewrite function. Function delete User with Cascade deleting Profile"""
+        """Function delete User with Cascade deleting Profile"""
 
         instance = self.get_object()
         self.perform_destroy(get_user_model().objects.get(pk=instance.user.pk))
@@ -93,7 +93,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
     def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
         """Return the appropriate serializer class based on the request."""
-
+        
         if self.action == "list":
             return PostListSerializer
 
@@ -102,6 +102,9 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         if self.action == "upload_image":
             return PostImageSerializer
+
+        if self.action == "my_posts":
+            return PostListSerializer
 
         return super().get_serializer_class()
 
@@ -115,3 +118,14 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
             queryset = queryset.filter(text__regex=rf"(^|\s)#{hashtag}(?=\s|$)")
 
         return queryset.distinct()
+
+    @action(methods=["GET"], detail=False, url_path="my_posts")
+    def my_posts(self, request: Request, pk=None) -> Type[Response]:
+        if request.user.is_authenticated:
+            user = self.request.user
+            serializer = self.get_serializer(self.queryset.filter(user=user), many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(
+            {"detail": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED
+        )  # type: ignore
