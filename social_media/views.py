@@ -1,4 +1,5 @@
 import profile
+from tkinter import NO
 from social_media.serializers import *
 from social_media.models import Profile, Post, PostLike
 
@@ -74,7 +75,7 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         if user_profile == target_profile:
             return Response(
-                {"detail": "You cannot unfollow from yourself"},
+                {"detail": "You cannot follow yourself"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -143,6 +144,9 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
             queryset = queryset.filter(text__regex=rf"(^|\s)#{hashtag}(?=\s|$)")
 
         return queryset.distinct()
+
+    def perform_create(self, serializer: ModelSerializer) -> None:
+        serializer.save(user=self.request.user)
 
     @action(methods=["GET"], detail=False, url_path="my_posts")
     def my_posts(self, request: Request, pk=None) -> Type[Response]:
