@@ -145,3 +145,19 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         return Response(
             {"detail": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED
         )  # type: ignore
+
+    @action(methods=["GET", "POST"], detail=True)
+    def toggle_like(self, request: Request, pk: int = None) -> Response:  # type: ignore
+        user = request.user
+        post = self.get_object()
+
+        post_like = PostLike.objects.filter(post=post, user=user).first()
+
+        if post_like:
+            post_like.delete()
+            return Response(
+                {"detail": "Like removed"}, status=status.HTTP_204_NO_CONTENT
+            )
+
+        PostLike.objects.create(post=post, user=user)
+        return Response({"detail": "Like added"}, status=status.HTTP_201_CREATED)
