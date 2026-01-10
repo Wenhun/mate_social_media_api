@@ -39,8 +39,6 @@ def create_profile(
     if created:
         user_profile = Profile(user=instance)
         user_profile.save()
-        user_profile.follows.set([instance.profile.pk])  # type: ignore
-        user_profile.save()
 
 
 class ContentBase(models.Model):
