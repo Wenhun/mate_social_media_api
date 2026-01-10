@@ -1,3 +1,4 @@
+import profile
 from social_media.serializers import *
 from social_media.models import Profile, Post, PostLike
 
@@ -65,6 +66,27 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
     @action(methods=["GET"], detail=True, url_path="following")
     def following(self, request: Request, pk=None) -> Type[Response]:
         return self._serialize_profile(request)
+
+    @action(methods=["GET", "POST"], detail=True)
+    def follow_profile_toggle(self, request: Request, pk: int = None) -> Response:  # type: ignore
+        user_profile = request.user.profile
+        target_profile = self.get_object()
+
+        if user_profile == target_profile:
+            return Response(
+                {"detail": "You cannot unfollow from yourself"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        is_following = target_profile.followed_by.filter(pk=user_profile.pk).exists()
+
+        if is_following:
+
+            target_profile.followed_by.remove(user_profile)
+            return Response({"detail": "Unfollowed"}, status=status.HTTP_204_NO_CONTENT)
+
+        target_profile.followed_by.add(user_profile)
+        return Response({"detail": "Followed"}, status=status.HTTP_201_CREATED)
 
     def destroy(self, request: Request, *args, **kwargs) -> Type[Response]:  # type: ignore
         """Function delete User with Cascade deleting Profile"""
@@ -147,7 +169,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         )  # type: ignore
 
     @action(methods=["GET", "POST"], detail=True)
-    def toggle_like(self, request: Request, pk: int = None) -> Response:  # type: ignore
+    def like_toggle(self, request: Request, pk: int = None) -> Response:  # type: ignore
         user = request.user
         post = self.get_object()
 
