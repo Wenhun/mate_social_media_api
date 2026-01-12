@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.request import Request
 from django.contrib.auth import get_user_model
 
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, OpenApiResponse  # type: ignore
 
 from typing import Type
 
@@ -62,15 +63,38 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         serializer = self.get_serializer(profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        responses={
+            200: ProfileFollowersSerializer,
+        },
+        methods=["GET"],
+        description="Provides a list of users who follow the authorized user",
+    )
     @action(methods=["GET"], detail=True, url_path="followers")
     def followers(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         return self._serialize_profile(request)
 
+    @extend_schema(
+        responses={
+            200: ProfileFollowsSerializer,
+        },
+        methods=["GET"],
+        description="Provides a list of users that the authorized user is following",
+    )
     @action(methods=["GET"], detail=True, url_path="following")
     def following(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         return self._serialize_profile(request)
 
-    @action(methods=["GET", "POST"], detail=True)
+    @extend_schema(
+        request=None,
+        responses={
+            201: OpenApiResponse(description="Add user to follow"),
+            204: OpenApiResponse(description="Remove user from follow"),
+        },
+        methods=["POST"],
+        description="Toggle follow user. User ID is automatically added for authorized users",
+    )
+    @action(methods=["POST"], detail=True)
     def follow_profile_toggle(self, request: Request, pk: int = None) -> Response:  # type: ignore
         user_profile = request.user.profile
         target_profile = self.get_object()
@@ -86,11 +110,18 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         if is_following:
 
             target_profile.followed_by.remove(user_profile)
-            return Response({"detail": "Unfollowed"}, status=status.HTTP_204_NO_CONTENT)
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         target_profile.followed_by.add(user_profile)
         return Response({"detail": "Followed"}, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        responses={
+            204: ProfileDetailSerializer,
+        },
+        methods=["DELETE"],
+        description="Delete profile and linked user",
+    )
     def destroy(self, request: Request, *args, **kwargs) -> Type[Response]:  # type: ignore
         """Function delete User with Cascade deleting Profile"""
 
@@ -108,6 +139,18 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
             queryset = queryset.filter(user__username__icontains=username)
 
         return queryset.distinct()
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "username",
+                type=OpenApiTypes.STR,
+                description="Filter by username (ex. ?username='bob')",
+            ),
+        ]
+    )
+    def list(self, request: Request, *args, **kwargs) -> Response:
+        return super().list(request, *args, **kwargs)
 
 
 class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
@@ -137,7 +180,6 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         return super().get_serializer_class()
 
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
-        """Retrieve the profiles with filters"""
         hashtag = self.request.query_params.get("hashtag")  # type: ignore
 
         queryset = self.queryset
@@ -150,6 +192,23 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
     def perform_create(self, serializer: ModelSerializer) -> None:
         serializer.save(user=self.request.user)
 
+    @extend_schema(
+        responses={
+            201: PostSerializer,
+        },
+        methods=["POST"],
+        description="Create post. User ID is automatically added",
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(
+        responses={
+            200: PostListSerializer,
+        },
+        methods=["GET"],
+        description="Showing posts by authorized user",
+    )
     @action(methods=["GET"], detail=False, url_path="my_posts")
     def my_posts(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         if request.user.is_authenticated:
@@ -161,6 +220,13 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
             {"detail": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED
         )  # type: ignore
 
+    @extend_schema(
+        responses={
+            200: PostListSerializer,
+        },
+        methods=["GET"],
+        description="Shows posts followed by the authorized user",
+    )
     @action(methods=["GET"], detail=False, url_path="posts_from_follows")
     def posts_from_follows(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         if request.user.is_authenticated:
@@ -174,7 +240,16 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
             {"detail": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED
         )  # type: ignore
 
-    @action(methods=["GET", "POST"], detail=True)
+    @extend_schema(
+        request=None,
+        responses={
+            201: OpenApiResponse(description="Create like on post"),
+            204: OpenApiResponse(description="Remove like from post"),
+        },
+        methods=["POST"],
+        description="Toggle like on post. User ID is automatically added for authorized users",
+    )
+    @action(methods=["POST"], detail=True)
     def like_toggle(self, request: Request, pk: int = None) -> Response:  # type: ignore
         user = request.user
         post = self.get_object()
@@ -183,12 +258,22 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         if post_like:
             post_like.delete()
-            return Response(
-                {"detail": "Like removed"}, status=status.HTTP_204_NO_CONTENT
-            )
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         PostLike.objects.create(post=post, user=user)
         return Response({"detail": "Like added"}, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "hashtag",
+                type=OpenApiTypes.STR,
+                description="Filter by hashtag (ex. ?hashtag='#bob'). Symbol '#' is added automatically",
+            ),
+        ]
+    )
+    def list(self, request: Request, *args, **kwargs) -> Response:
+        return super().list(request, *args, **kwargs)
 
 
 class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
@@ -212,12 +297,31 @@ class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
     def perform_create(self, serializer: ModelSerializer) -> None:
         serializer.save(user=self.request.user, post_id=self.kwargs["post_pk"])
 
+    @extend_schema(
+        responses={
+            201: CommentSerializer,
+        },
+        methods=["POST"],
+        description="Create comment. User ID and Post ID is automatically added for authorized users",
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
     def get_queryset(self) -> QuerySet[Comment]:  # type: ignore
         return Comment.objects.select_related("post", "user").filter(
             post_id=self.kwargs["post_pk"]
         )
 
-    @action(methods=["GET", "POST"], detail=True)
+    @extend_schema(
+        request=None,
+        responses={
+            201: OpenApiResponse(description="Create like on comment"),
+            204: OpenApiResponse(description="Remove like from comment"),
+        },
+        methods=["POST"],
+        description="Toggle like on comment. User ID and Post ID is automatically added for authorized users and parent post",
+    )
+    @action(methods=["POST"], detail=True)
     def like_toggle(self, request: Request, post_pk: int = None, pk: int = None) -> Response:  # type: ignore
         user = request.user
         comment = self.get_object()
@@ -226,9 +330,7 @@ class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         if comment_like:
             comment_like.delete()
-            return Response(
-                {"detail": "Like removed"}, status=status.HTTP_204_NO_CONTENT
-            )
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         CommentLike.objects.create(comment=comment, user=user)
         return Response({"detail": "Like added"}, status=status.HTTP_201_CREATED)
