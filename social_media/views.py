@@ -63,11 +63,11 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["GET"], detail=True, url_path="followers")
-    def followers(self, request: Request, pk=None) -> Type[Response]:
+    def followers(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         return self._serialize_profile(request)
 
     @action(methods=["GET"], detail=True, url_path="following")
-    def following(self, request: Request, pk=None) -> Type[Response]:
+    def following(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         return self._serialize_profile(request)
 
     @action(methods=["GET", "POST"], detail=True)
@@ -151,7 +151,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         serializer.save(user=self.request.user)
 
     @action(methods=["GET"], detail=False, url_path="my_posts")
-    def my_posts(self, request: Request, pk=None) -> Type[Response]:
+    def my_posts(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         if request.user.is_authenticated:
             user = self.request.user
             serializer = self.get_serializer(self.queryset.filter(user=user), many=True)
@@ -162,7 +162,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         )  # type: ignore
 
     @action(methods=["GET"], detail=False, url_path="posts_from_follows")
-    def posts_from_follows(self, request: Request, pk=None) -> Type[Response]:
+    def posts_from_follows(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         if request.user.is_authenticated:
             profile = Profile.objects.get(user=request.user)
             following_user_ids = profile.follows.values_list("user_id", flat=True)
@@ -209,7 +209,7 @@ class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         return super().get_serializer_class()
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer: ModelSerializer) -> None:
         serializer.save(user=self.request.user, post_id=self.kwargs["post_pk"])
 
     def get_queryset(self) -> QuerySet[Comment]:  # type: ignore
