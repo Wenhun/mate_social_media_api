@@ -1,3 +1,4 @@
+from turtle import mode
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
@@ -46,25 +47,17 @@ class ProfileImageSerializer(serializers.ModelSerializer):
         fields = ("id", "image")
 
 
-class CommentsSerializer(serializers.ModelSerializer):
+class CommentPostSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
 
     class Meta:
         model = Comment
-        fields = ("id", "user", "text", "created_at", "updated_at", "post", "image")
-
-
-class LikeUserSerializer(serializers.ModelSerializer):
-    user = serializers.CharField(source="user.username", read_only=True)
-
-    class Meta:
-        model = PostLike
-        fields = ("id", "user")
+        fields = ("id", "user", "text", "image")
 
 
 class PostSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
-    comments = CommentsSerializer(read_only=True, many=True)
+    comments = CommentPostSerializer(read_only=True, many=True)
     likes_by = serializers.SerializerMethodField()
     count_likes = serializers.IntegerField(source="post_likes.count", read_only=True)
 
@@ -102,27 +95,6 @@ class PostImageSerializer(serializers.ModelSerializer):
         fields = ("id", "image")
 
 
-class LikeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PostLike
-        fields = ("id", "user", "post", "created_at")
-
-
-class LikeDetailSerializer(LikeSerializer):
-    user = serializers.CharField(source="user.username", read_only=True)
-    post = PostSerializer(read_only=True, many=False)
-
-
-class LikeListSerializer(serializers.ModelSerializer):
-    user = serializers.CharField(source="user.username", read_only=True)
-    post_by = serializers.CharField(source="post.user.username", read_only=True)
-    post_text = serializers.CharField(source="post.text", read_only=True)
-
-    class Meta:
-        model = PostLike
-        fields = ("id", "user", "post_by", "post_text")
-
-
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -133,3 +105,33 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data: dict) -> User:
         return get_user_model().objects.create_user(**validated_data)  # type: ignore
+
+
+class PostCommentSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="user.username", read_only=True)
+
+    class Meta:
+        fields = ("id", "user", "text")
+
+
+class CommentsDetailSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="user.username", read_only=True)
+    post = PostCommentSerializer(read_only=True, many=False)
+    likes_by = serializers.SerializerMethodField()
+    count_likes = serializers.IntegerField(source="comment_likes.count", read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ("id", "user", "post", "text", "created_at", "updated_at", "image")
+
+    def get_likes_by(self, obj) -> list:
+        return [like.user.username for like in obj.post_likes.all()]
+
+
+class CommentsListSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="user.username", read_only=True)
+    count_likes = serializers.IntegerField(source="comment_likes.count", read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ("id", "user", "text", "count_likes")
