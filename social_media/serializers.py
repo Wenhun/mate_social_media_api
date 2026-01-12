@@ -1,10 +1,7 @@
-from turtle import mode
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
-from social_media.models import Profile, Post, PostLike, Comment
-
-from typing import Type
+from social_media.models import Profile, Post, Comment
 
 
 class ProfileListSerializer(serializers.ModelSerializer):

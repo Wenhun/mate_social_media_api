@@ -1,11 +1,8 @@
-import profile
-from tkinter import NO
 from social_media.serializers import *
 from social_media.models import CommentLike, Profile, Post, PostLike
 
 from django.db.models.query import QuerySet
-from rest_framework.decorators import api_view
-from rest_framework import viewsets, status, generics
+from rest_framework import viewsets, status
 from rest_framework.serializers import ModelSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
