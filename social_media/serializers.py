@@ -53,19 +53,11 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         fields = ("id", "bio", "image")
 
 
-class CommentPostSerializer(serializers.ModelSerializer):
-    user = serializers.CharField(source="user.username", read_only=True)
-
-    class Meta:
-        model = Comment
-        fields = ("id", "user", "text", "image")
-
-
 class PostSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
-    comments = CommentPostSerializer(read_only=True, many=True)
     likes_by = serializers.SerializerMethodField()
     count_likes = serializers.IntegerField(source="post_likes.count", read_only=True)
+    count_comments = serializers.IntegerField(source="comments.count", read_only=True)
 
     class Meta:
         model = Post
@@ -76,9 +68,9 @@ class PostSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "likes_by",
-            "comments",
             "image",
             "count_likes",
+            "count_comments",
         )
 
     def get_likes_by(self, obj) -> list:
