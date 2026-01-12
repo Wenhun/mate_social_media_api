@@ -47,6 +47,12 @@ class ProfileImageSerializer(serializers.ModelSerializer):
         fields = ("id", "image")
 
 
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ("id", "bio", "image")
+
+
 class CommentPostSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
 

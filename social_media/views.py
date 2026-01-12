@@ -52,6 +52,8 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
             return ProfileImageSerializer
         if self.action == "create":
             return UserSerializer
+        if self.action == "update":
+            return ProfileUpdateSerializer
 
         return super().get_serializer_class()
 
