@@ -111,7 +111,16 @@ class PostCommentSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
 
     class Meta:
+        model = Post
         fields = ("id", "user", "text")
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="user.username", read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = ("id", "user", "text", "image")
 
 
 class CommentsDetailSerializer(serializers.ModelSerializer):
@@ -122,10 +131,20 @@ class CommentsDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ("id", "user", "post", "text", "created_at", "updated_at", "image")
+        fields = (
+            "id",
+            "user",
+            "post",
+            "text",
+            "created_at",
+            "updated_at",
+            "likes_by",
+            "count_likes",
+            "image",
+        )
 
     def get_likes_by(self, obj) -> list:
-        return [like.user.username for like in obj.post_likes.all()]
+        return [like.user.username for like in obj.comment_likes.all()]
 
 
 class CommentsListSerializer(serializers.ModelSerializer):
@@ -135,3 +154,9 @@ class CommentsListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ("id", "user", "text", "count_likes")
+
+
+class CommentImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ("id", "image")

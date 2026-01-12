@@ -1,7 +1,7 @@
 import profile
 from tkinter import NO
 from social_media.serializers import *
-from social_media.models import Profile, Post, PostLike
+from social_media.models import CommentLike, Profile, Post, PostLike
 
 from django.db.models.query import QuerySet
 from rest_framework.decorators import api_view
@@ -186,4 +186,47 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
             )
 
         PostLike.objects.create(post=post, user=user)
+        return Response({"detail": "Like added"}, status=status.HTTP_201_CREATED)
+
+
+class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
+    queryset = Comment.objects.select_related("post", "user")
+    serializer_class = CommentSerializer
+
+    def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
+        """Return the appropriate serializer class based on the request."""
+
+        if self.action == "list":
+            return CommentsListSerializer
+
+        if self.action == "retrieve":
+            return CommentsDetailSerializer
+
+        if self.action == "upload_image":
+            return CommentImageSerializer
+
+        return super().get_serializer_class()
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user, post_id=self.kwargs["post_pk"])
+
+    def get_queryset(self) -> QuerySet[Comment]:  # type: ignore
+        return Comment.objects.select_related("post", "user").filter(
+            post_id=self.kwargs["post_pk"]
+        )
+
+    @action(methods=["GET", "POST"], detail=True)
+    def like_toggle(self, request: Request, post_pk: int = None, pk: int = None) -> Response:  # type: ignore
+        user = request.user
+        comment = self.get_object()
+
+        comment_like = CommentLike.objects.filter(comment=comment, user=user).first()
+
+        if comment_like:
+            comment_like.delete()
+            return Response(
+                {"detail": "Like removed"}, status=status.HTTP_204_NO_CONTENT
+            )
+
+        CommentLike.objects.create(comment=comment, user=user)
         return Response({"detail": "Like added"}, status=status.HTTP_201_CREATED)
