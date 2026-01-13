@@ -1,10 +1,12 @@
 import os
 import uuid
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from datetime import datetime
 
 
 def get_file_path(instance: models.Model, filename: str) -> str:
@@ -77,6 +79,29 @@ class PostLike(models.Model):
 
     def __str__(self) -> str:
         return f"Post (id: {self.post.pk}) is liked by {self.user.username}"
+
+
+class ScheduledPost(models.Model):
+    class StatusChoices(models.TextChoices):
+        DRAFT = "draft"
+        SCHEDULED = "scheduled"
+        PUBLISHED = "published"
+
+    post = models.OneToOneField(
+        Post, on_delete=models.CASCADE, related_name="schedule_post"
+    )
+    time = models.DateTimeField(default=timezone.now)
+    status = models.CharField(
+        max_length=50, choices=StatusChoices.choices, default=StatusChoices.DRAFT
+    )
+
+    def __str__(self) -> str:
+        if self.status == self.StatusChoices.DRAFT:
+            return f"Post with ID {self.post.pk} has 'Draft' status"
+        if self.status == self.StatusChoices.SCHEDULED:
+            return f"Post with ID {self.post.pk} scheduled for posting at {self.time}"
+
+        return f"Post with ID {self.post.pk} is posted"
 
 
 class CommentLike(models.Model):
