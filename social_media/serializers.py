@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
-from social_media.models import Profile, Post, Comment
+from social_media.models import Profile, Post, Comment, ScheduledPost
 
 
 class ProfileListSerializer(serializers.ModelSerializer):
@@ -55,6 +55,8 @@ class PostSerializer(serializers.ModelSerializer):
     likes_by = serializers.SerializerMethodField()
     count_likes = serializers.IntegerField(source="post_likes.count", read_only=True)
     count_comments = serializers.IntegerField(source="comments.count", read_only=True)
+    time_to_publishing = serializers.DateTimeField(source="schedule_post.time")
+    post_status = serializers.ChoiceField(choices=ScheduledPost.StatusChoices)
 
     class Meta:
         model = Post
@@ -68,6 +70,8 @@ class PostSerializer(serializers.ModelSerializer):
             "image",
             "count_likes",
             "count_comments",
+            "time_to_publishing",
+            "post_status",
         )
 
     def get_likes_by(self, obj) -> list:
