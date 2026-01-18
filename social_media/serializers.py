@@ -1,7 +1,11 @@
+from urllib import request
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from social_media.models import Profile, Post, Comment, ScheduledPost
+from django.utils import timezone
+
+from .tasks import publish_post_task
 
 
 class ProfileListSerializer(serializers.ModelSerializer):
@@ -55,8 +59,10 @@ class PostSerializer(serializers.ModelSerializer):
     likes_by = serializers.SerializerMethodField()
     count_likes = serializers.IntegerField(source="post_likes.count", read_only=True)
     count_comments = serializers.IntegerField(source="comments.count", read_only=True)
-    time_to_publishing = serializers.DateTimeField(source="schedule_post.time")
-    post_status = serializers.ChoiceField(choices=ScheduledPost.StatusChoices)
+    time_to_publishing = serializers.DateTimeField(required=False, allow_null=True)
+    post_status = serializers.ChoiceField(
+        choices=ScheduledPost.StatusChoices, request=False, allow_null=True
+    )
 
     class Meta:
         model = Post
@@ -76,6 +82,28 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_likes_by(self, obj) -> list:
         return [like.user.username for like in obj.post_likes.all()]
+
+    def create(self, validated_data: dict) -> Post:
+        time = validated_data.pop("time_to_publishing", None)
+        status = validated_data.pop("post_status", None)
+        user = self.context["request"].user
+        post = Post.objects.create(user=user, **validated_data)
+
+        if not time:
+            return post
+
+        if time <= timezone.now():
+            return post
+
+        scheduled = ScheduledPost.objects.create(
+            post=post, time=time, status=status or ScheduledPost.StatusChoices.DRAFT
+        )
+
+        if scheduled.status == ScheduledPost.StatusChoices.SCHEDULED:
+
+            publish_post_task.apply_async(args=[scheduled.pk], eta=scheduled.time)  # type: ignore
+
+        return post
 
 
 class PostListSerializer(serializers.ModelSerializer):
