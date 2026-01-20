@@ -4,8 +4,10 @@ from django.utils import timezone
 from .models import ScheduledPost
 
 
-@shared_task
+@shared_task(name="social_media_tasks.publish_post_task")
 def publish_post_task(scheduled_id: int) -> None:
+    if not scheduled_id:
+        return
     try:
         scheduled = ScheduledPost.objects.get(pk=scheduled_id)
     except ScheduledPost.DoesNotExist:

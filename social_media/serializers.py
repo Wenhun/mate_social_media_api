@@ -59,10 +59,19 @@ class PostSerializer(serializers.ModelSerializer):
     likes_by = serializers.SerializerMethodField()
     count_likes = serializers.IntegerField(source="post_likes.count", read_only=True)
     count_comments = serializers.IntegerField(source="comments.count", read_only=True)
-    time_to_publishing = serializers.DateTimeField(required=False, allow_null=True)
-    post_status = serializers.ChoiceField(
-        choices=ScheduledPost.StatusChoices, request=False, allow_null=True
+    time_to_publishing = serializers.DateTimeField(
+        required=False, allow_null=True, write_only=True
     )
+    post_status = serializers.ChoiceField(
+        choices=ScheduledPost.StatusChoices.choices,
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+    published_at = serializers.DateTimeField(
+        source="schedule_post.time", read_only=True
+    )
+    status = serializers.CharField(source="schedule_post.status", read_only=True)
 
     class Meta:
         model = Post
@@ -78,6 +87,8 @@ class PostSerializer(serializers.ModelSerializer):
             "count_comments",
             "time_to_publishing",
             "post_status",
+            "published_at",
+            "status",
         )
 
     def get_likes_by(self, obj) -> list:
@@ -101,7 +112,7 @@ class PostSerializer(serializers.ModelSerializer):
 
         if scheduled.status == ScheduledPost.StatusChoices.SCHEDULED:
 
-            publish_post_task.apply_async(args=[scheduled.pk], eta=scheduled.time)  # type: ignore
+            publish_post_task.apply_async(args=[scheduled.id], eta=scheduled.time)  # type: ignore
 
         return post
 

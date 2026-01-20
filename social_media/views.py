@@ -186,8 +186,8 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         return queryset.distinct()
 
-    def perform_create(self, serializer: ModelSerializer) -> None:
-        serializer.save(user=self.request.user)
+    # def perform_create(self, serializer: ModelSerializer) -> None:
+    #     serializer.save(user=self.request.user)
 
     @extend_schema(
         responses={
