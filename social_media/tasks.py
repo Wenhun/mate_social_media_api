@@ -1,10 +1,9 @@
-from tkinter import N
 from celery import shared_task
 from django.utils import timezone
 from .models import ScheduledPost
 
 
-@shared_task(name="social_media_tasks.publish_post_task")
+@shared_task
 def publish_post_task(scheduled_id: int) -> None:
     if not scheduled_id:
         return
