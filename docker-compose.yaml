@@ -33,7 +33,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: "celery -A social_media_api worker --pool=solo -l info"
+    command: "celery -A social_media_api worker -l info"
     depends_on:
       - web
       - db

@@ -1,11 +1,10 @@
-from urllib import request
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from social_media.models import Profile, Post, Comment, ScheduledPost
 from django.utils import timezone
 
-from .tasks import publish_post_task
+from social_media.tasks import publish_post_task
 
 
 class ProfileListSerializer(serializers.ModelSerializer):
