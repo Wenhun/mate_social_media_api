@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.request import Request
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, OpenApiResponse  # type: ignore
 
@@ -174,12 +175,21 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         if self.action == "posts_from_follows":
             return PostListSerializer
 
+        if self.action == "show_drafted_posts":
+            return PostListSerializer
+
+        if self.action == "show_scheduled_posts":
+            return PostListSerializer
+
         return super().get_serializer_class()
 
     def get_queryset(self) -> QuerySet[Post]:  # type: ignore
         hashtag = self.request.query_params.get("hashtag")  # type: ignore
 
-        queryset = self.queryset
+        queryset = self.queryset.filter(
+            Q(schedule_post__isnull=True)
+            | Q(schedule_post__status=ScheduledPost.StatusChoices.PUBLISHED)
+        )
 
         if hashtag:
             queryset = queryset.filter(text__regex=rf"(^|\s)#{hashtag}(?=\s|$)")
@@ -188,6 +198,28 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
     # def perform_create(self, serializer: ModelSerializer) -> None:
     #     serializer.save(user=self.request.user)
+
+    @action(methods=["GET"], detail=False, url_path="drafts")
+    def show_drafted_posts(self, request: Request, pk: int = None) -> Type[Response]:
+        user = self.request.user
+        queryset = self.queryset.filter(user=user)
+        queryset = queryset.filter(
+            Q(schedule_post__isnull=False)
+            | Q(schedule_post__status=ScheduledPost.StatusChoices.DRAFT)
+        )
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=["GET"], detail=False, url_path="scheduled")
+    def show_scheduled_posts(self, request: Request, pk: int = None) -> Type[Response]:
+        user = self.request.user
+        queryset = self.queryset.filter(user=user)
+        queryset = queryset.filter(
+            Q(schedule_post__isnull=False)
+            | Q(schedule_post__status=ScheduledPost.StatusChoices.SCHEDULED)
+        )
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         responses={
