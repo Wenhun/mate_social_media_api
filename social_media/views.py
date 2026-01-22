@@ -169,21 +169,24 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         if self.action == "upload_image":
             return PostImageSerializer
 
-        if self.action == "my_posts":
-            return PostListSerializer
+        if self.action == "user_posts":
+            return PostUserListSerializer
 
         if self.action == "posts_from_follows":
             return PostListSerializer
 
-        if self.action == "show_drafted_posts":
+        if self.action == "show_user_draft_posts":
             return PostListSerializer
 
-        if self.action == "show_scheduled_posts":
+        if self.action == "show_user_scheduled_posts":
             return PostListSerializer
 
         return super().get_serializer_class()
 
-    def get_queryset(self) -> QuerySet[Post]:  # type: ignore
+    def get_queryset(self) -> QuerySet[Post]:
+        if self.action == "retrieve":
+            return self.queryset
+
         hashtag = self.request.query_params.get("hashtag")  # type: ignore
 
         queryset = self.queryset.filter(
@@ -196,27 +199,27 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         return queryset.distinct()
 
-    # def perform_create(self, serializer: ModelSerializer) -> None:
-    #     serializer.save(user=self.request.user)
-
     @action(methods=["GET"], detail=False, url_path="drafts")
-    def show_drafted_posts(self, request: Request, pk: int = None) -> Type[Response]:
+    def show_user_draft_posts(self, request: Request, pk: int = None) -> Type[Response]:
         user = self.request.user
         queryset = self.queryset.filter(user=user)
         queryset = queryset.filter(
-            Q(schedule_post__isnull=False)
-            | Q(schedule_post__status=ScheduledPost.StatusChoices.DRAFT)
+            schedule_post__isnull=False,
+            schedule_post__status=ScheduledPost.StatusChoices.DRAFT,
         )
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=["GET"], detail=False, url_path="scheduled")
-    def show_scheduled_posts(self, request: Request, pk: int = None) -> Type[Response]:
+    def show_user_scheduled_posts(
+        self, request: Request, pk: int = None
+    ) -> Type[Response]:
         user = self.request.user
         queryset = self.queryset.filter(user=user)
         queryset = queryset.filter(
-            Q(schedule_post__isnull=False)
-            | Q(schedule_post__status=ScheduledPost.StatusChoices.SCHEDULED)
+            schedule_post__isnull=False,
+            schedule_post__status=ScheduledPost.StatusChoices.SCHEDULED,
         )
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -239,7 +242,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         description="Showing posts by authorized user",
     )
     @action(methods=["GET"], detail=False, url_path="my_posts")
-    def my_posts(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
+    def user_posts(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         if request.user.is_authenticated:
             user = self.request.user
             serializer = self.get_serializer(self.queryset.filter(user=user), many=True)
