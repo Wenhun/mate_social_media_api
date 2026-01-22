@@ -126,6 +126,29 @@ class PostListSerializer(serializers.ModelSerializer):
         fields = ("id", "user", "text", "updated_at", "count_comments", "count_likes")
 
 
+class PostUserListSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="user.username", read_only=True)
+    count_likes = serializers.IntegerField(source="post_likes.count", read_only=True)
+    count_comments = serializers.IntegerField(source="comments.count", read_only=True)
+    published_at = serializers.DateTimeField(
+        source="schedule_post.time", read_only=True
+    )
+    status = serializers.CharField(source="schedule_post.status", read_only=True)
+
+    class Meta:
+        model = Post
+        fields = (
+            "id",
+            "user",
+            "text",
+            "updated_at",
+            "count_comments",
+            "count_likes",
+            "published_at",
+            "status",
+        )
+
+
 class PostImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
