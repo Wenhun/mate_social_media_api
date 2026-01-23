@@ -184,7 +184,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         return super().get_serializer_class()
 
     def get_queryset(self) -> QuerySet[Post]:
-        if self.action == "retrieve":
+        if self.action in ["retrieve", "update", "partial_update", "destroy"]:
             return self.queryset
 
         hashtag = self.request.query_params.get("hashtag")  # type: ignore
@@ -199,6 +199,11 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         return queryset.distinct()
 
+    @extend_schema(
+        responses={200: PostListSerializer, 204: None},
+        methods=["GET"],
+        description="Showing posts with status 'Draft' by authorized user",
+    )
     @action(methods=["GET"], detail=False, url_path="drafts")
     def show_user_draft_posts(self, request: Request, pk: int = None) -> Type[Response]:
         user = self.request.user
@@ -208,9 +213,20 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
             schedule_post__status=ScheduledPost.StatusChoices.DRAFT,
         )
 
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        if queryset:
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
+        return Response(
+            {"detail": "No post with status 'Draft'."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
+
+    @extend_schema(
+        responses={200: PostListSerializer, 204: None},
+        methods=["GET"],
+        description="Showing posts with status 'Scheduled' by authorized user",
+    )
     @action(methods=["GET"], detail=False, url_path="scheduled")
     def show_user_scheduled_posts(
         self, request: Request, pk: int = None
@@ -221,36 +237,33 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
             schedule_post__isnull=False,
             schedule_post__status=ScheduledPost.StatusChoices.SCHEDULED,
         )
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        if queryset:
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(
+            {"detail": "No post with status 'Scheduled'."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
 
     @extend_schema(
-        responses={
-            201: PostSerializer,
-        },
-        methods=["POST"],
-        description="Create post. User ID is automatically added",
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-
-    @extend_schema(
-        responses={
-            200: PostListSerializer,
-        },
+        responses={200: PostUserListSerializer, 204: None},
         methods=["GET"],
         description="Showing posts by authorized user",
     )
     @action(methods=["GET"], detail=False, url_path="my_posts")
     def user_posts(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
-        if request.user.is_authenticated:
-            user = self.request.user
-            serializer = self.get_serializer(self.queryset.filter(user=user), many=True)
+        user = self.request.user
+        queryset = self.queryset.filter(user=user)
+        if queryset:
+            serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(
-            {"detail": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED
-        )  # type: ignore
+            {"detail": "The user has not created any posts yet."},
+            status=status.HTTP_204_NO_CONTENT,
+        )
 
     @extend_schema(
         responses={
@@ -294,6 +307,16 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         PostLike.objects.create(post=post, user=user)
         return Response({"detail": "Like added"}, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        responses={
+            201: PostSerializer,
+        },
+        methods=["POST"],
+        description="Create post. User ID is automatically added",
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
     @extend_schema(
         parameters=[
