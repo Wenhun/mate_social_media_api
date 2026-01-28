@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     "social_media",
     "rest_framework",
     "drf_spectacular",
-    "django_celery_beat",
 ]
 
 MIDDLEWARE = [

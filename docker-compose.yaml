@@ -42,21 +42,6 @@ services:
     env_file:
       - .env
 
-  celery-beat:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: > 
-        sh -c "python manage.py wait_for_db && 
-        celery -A social_media_api beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
-    depends_on:
-      - web
-      - db
-      - redis
-    restart: on-failure
-    env_file:
-      - .env
-
   flower:
     build:
       context: .
