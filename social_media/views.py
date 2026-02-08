@@ -1,4 +1,5 @@
 from social_media.serializers import *
+from user.serializers import UserSerializer
 from social_media.models import CommentLike, Profile, Post, PostLike
 
 from django.db.models.query import QuerySet

@@ -193,18 +193,6 @@ class PostImageSerializer(serializers.ModelSerializer):
         fields = ("id", "image")
 
 
-class UserSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = get_user_model()
-        fields = ("id", "username", "email", "password", "is_staff")
-        read_only_fields = ("id", "is_staff")
-        extra_kwargs = {"password": {"write_only": True, "min_length": 5}}
-
-    def create(self, validated_data: dict) -> User:
-        return get_user_model().objects.create_user(**validated_data)  # type: ignore
-
-
 class PostCommentSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source="user.username", read_only=True)
 
