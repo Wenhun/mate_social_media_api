@@ -97,21 +97,59 @@ class PostSerializer(serializers.ModelSerializer):
         time = validated_data.pop("time_to_publishing", None)
         status = validated_data.pop("post_status", None)
         user = self.context["request"].user
+
         post = Post.objects.create(user=user, **validated_data)
 
-        if not time:
+        if status is None:
+            if not time:
+                return post
+
+            if time <= timezone.now():
+                raise serializers.ValidationError(
+                    {"time_to_publishing": "Time must be in the future."}
+                )
+
+            ScheduledPost.objects.create(
+                post=post, time=time, status=ScheduledPost.StatusChoices.DRAFT
+            )
             return post
 
-        if time <= timezone.now():
+        if status == ScheduledPost.StatusChoices.DRAFT:
+            if not time:
+                ScheduledPost.objects.create(
+                    post=post, status=ScheduledPost.StatusChoices.DRAFT
+                )
+                return post
+
+            if time <= timezone.now():
+                raise serializers.ValidationError(
+                    {"time_to_publishing": "Time must be in the future."}
+                )
+
+            ScheduledPost.objects.create(
+                post=post, time=time, status=ScheduledPost.StatusChoices.DRAFT
+            )
             return post
 
-        scheduled = ScheduledPost.objects.create(
-            post=post, time=time, status=status or ScheduledPost.StatusChoices.DRAFT
-        )
+        if status == ScheduledPost.StatusChoices.SCHEDULED:
+            if not time:
+                raise serializers.ValidationError(
+                    {
+                        "time_to_publishing": "Scheduled posts must have a publishing time."
+                    }
+                )
 
-        if scheduled.status == ScheduledPost.StatusChoices.SCHEDULED:
+            if time <= timezone.now():
+                raise serializers.ValidationError(
+                    {"time_to_publishing": "Time must be in the future."}
+                )
 
-            publish_post_task.apply_async(args=[scheduled.id], eta=scheduled.time)  # type: ignore
+            scheduled = ScheduledPost.objects.create(
+                post=post, time=time, status=ScheduledPost.StatusChoices.SCHEDULED
+            )
+
+            publish_post_task.apply_async(args=[scheduled.id], eta=scheduled.time)
+            return post
 
         return post
 
