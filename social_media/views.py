@@ -1,6 +1,6 @@
 from social_media.serializers import *
 from social_media.models import CommentLike, Profile, Post, PostLike
-from social_media.permissions import CanEditOwnProfileOrAdmin
+from social_media.permissions import CanEditOwnProfileOrAdmin, UserCannotActOnSelf
 
 from django.db.models.query import QuerySet
 from rest_framework import viewsets, status
@@ -118,17 +118,11 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
     @action(
         methods=["GET", "POST"],  # GET method added for debugging
         detail=True,
-        permission_classes=(IsAuthenticatedOrReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly, UserCannotActOnSelf),
     )
     def follow_profile_toggle(self, request: Request, pk: int = None) -> Response:
         user_profile = request.user.profile
         target_profile = self.get_object()
-
-        if user_profile == target_profile:
-            return Response(
-                {"detail": "You cannot follow yourself"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         is_following = target_profile.followed_by.filter(pk=user_profile.pk).exists()
 

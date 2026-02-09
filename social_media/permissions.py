@@ -10,3 +10,8 @@ class CanEditOwnProfileOrAdmin(BasePermission):
             return True
 
         return True if request.user.is_staff else obj.user == request.user
+
+
+class UserCannotActOnSelf(BasePermission):
+    def has_object_permission(self, request: Request, view: APIView, obj: any):
+        return True if request.user.is_staff else obj.user != request.user
