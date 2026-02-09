@@ -3,10 +3,12 @@ import uuid
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
-from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
+
+
+USER = settings.AUTH_USER_MODEL
 
 
 def get_file_path(instance: models.Model, filename: str) -> str:
@@ -23,7 +25,7 @@ def get_file_path(instance: models.Model, filename: str) -> str:
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField(USER, on_delete=models.CASCADE)
     bio = models.TextField(null=True, blank=True)
     follows = models.ManyToManyField(
         "self", related_name="followed_by", symmetrical=False, blank=True
@@ -34,9 +36,9 @@ class Profile(models.Model):
         return f"Profile (id: {self.pk}) by {self.user.username}"
 
 
-@receiver(post_save, sender=User)
+@receiver(post_save, sender=USER)
 def create_profile(
-    sender: User, instance: User, created: bool, *args, **kwargs
+    sender: USER, instance: USER, created: bool, *args, **kwargs
 ) -> None:
     if created:
         user_profile = Profile(user=instance)
@@ -55,18 +57,14 @@ class ContentBase(models.Model):
 
 
 class Post(ContentBase):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="posts"
-    )
+    user = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="posts")
 
     def __str__(self) -> str:
         return f"Post (id: {self.pk}) by {self.user.username}: {self.text}"
 
 
 class Comment(ContentBase):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="comments"
-    )
+    user = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="comments")
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="comments")
 
     def __str__(self) -> str:
@@ -77,9 +75,7 @@ class PostLike(models.Model):
     class Meta:  # type: ignore
         unique_together = ("user", "post")
 
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="post_likes"
-    )
+    user = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="post_likes")
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="post_likes")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -111,11 +107,11 @@ class ScheduledPost(models.Model):
 
 
 class CommentLike(models.Model):
-    class Meta:  # type: ignore
+    class Meta:
         unique_together = ("user", "comment")
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="comment_likes"
+        USER, on_delete=models.CASCADE, related_name="comment_likes"
     )
     comment = models.ForeignKey(
         Comment, on_delete=models.CASCADE, related_name="comment_likes"
