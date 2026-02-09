@@ -1,6 +1,5 @@
 from social_media.serializers import *
 from social_media.models import CommentLike, Profile, Post, PostLike
-from social_media.permissions import IsAdminOrIfAuthenticatedReadOnly
 
 from django.db.models.query import QuerySet
 from rest_framework import viewsets, status
@@ -8,6 +7,7 @@ from rest_framework.serializers import ModelSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.request import Request
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
@@ -21,7 +21,7 @@ class UploadImageMixin:
         methods=["POST"],
         detail=True,
         url_path="upload-image",
-        permission_classes=(IsAdminOrIfAuthenticatedReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly,),
     )
     def upload_image(self, request: Request, pk: int = None) -> Response:  # type: ignore
         """Endpoint for uploading an image to a specific object"""
@@ -39,7 +39,7 @@ class UploadImageMixin:
 class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
     queryset = Profile.objects.all()
     serializer_class = ProfileDetailSerializer
-    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
         if self.action == "followers":
@@ -73,7 +73,7 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         methods=["GET"],
         detail=True,
         url_path="followers",
-        permission_classes=(IsAdminOrIfAuthenticatedReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly,),
     )
     def followers(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         return self._serialize_profile(request)
@@ -89,7 +89,7 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         methods=["GET"],
         detail=True,
         url_path="following",
-        permission_classes=(IsAdminOrIfAuthenticatedReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly,),
     )
     def following(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         return self._serialize_profile(request)
@@ -104,9 +104,9 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         description="Toggle follow user. User ID is automatically added for authorized users",
     )
     @action(
-        methods=["POST"],
+        methods=["GET", "POST"],  # GET method added for debugging
         detail=True,
-        permission_classes=(IsAdminOrIfAuthenticatedReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly,),
     )
     def follow_profile_toggle(self, request: Request, pk: int = None) -> Response:  # type: ignore
         user_profile = request.user.profile
@@ -171,7 +171,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
     queryset = Post.objects.select_related("user")
     serializer_class = PostSerializer
-    permission_classes = ((IsAdminOrIfAuthenticatedReadOnly,),)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
         """Return the appropriate serializer class based on the request."""
@@ -224,7 +224,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         methods=["GET"],
         detail=False,
         url_path="drafts",
-        permission_classes=(IsAdminOrIfAuthenticatedReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly,),
     )
     def show_user_draft_posts(self, request: Request, pk: int = None) -> Type[Response]:
         user = self.request.user
@@ -252,7 +252,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         methods=["GET"],
         detail=False,
         url_path="scheduled",
-        permission_classes=(IsAdminOrIfAuthenticatedReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly,),
     )
     def show_user_scheduled_posts(
         self, request: Request, pk: int = None
@@ -282,7 +282,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         methods=["GET"],
         detail=False,
         url_path="my_posts",
-        permission_classes=(IsAdminOrIfAuthenticatedReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly,),
     )
     def user_posts(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         user = self.request.user
@@ -307,7 +307,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         methods=["GET"],
         detail=False,
         url_path="posts_from_follows",
-        permission_classes=(IsAdminOrIfAuthenticatedReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly,),
     )
     def posts_from_follows(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
         if request.user.is_authenticated:
@@ -331,9 +331,9 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         description="Toggle like on post. User ID is automatically added for authorized users",
     )
     @action(
-        methods=["POST"],
+        methods=["GET", "POST"],  # GET method added for debugging
         detail=True,
-        permission_classes=(IsAdminOrIfAuthenticatedReadOnly,),
+        permission_classes=(IsAuthenticatedOrReadOnly,),
     )
     def like_toggle(self, request: Request, pk: int = None) -> Response:  # type: ignore
         user = request.user
@@ -374,7 +374,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
     queryset = Comment.objects.select_related("post", "user")
     serializer_class = CommentSerializer
-    permission_classes = ((IsAdminOrIfAuthenticatedReadOnly,),)
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
         """Return the appropriate serializer class based on the request."""
@@ -417,7 +417,11 @@ class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
         methods=["POST"],
         description="Toggle like on comment. User ID and Post ID is automatically added for authorized users and parent post",
     )
-    @action(methods=["POST"], detail=True)
+    @action(
+        methods=["GET", "POST"],  # GET method added for debugging
+        detail=True,
+        permission_classes=(IsAuthenticatedOrReadOnly,),
+    )
     def like_toggle(self, request: Request, post_pk: int = None, pk: int = None) -> Response:  # type: ignore
         user = request.user
         comment = self.get_object()
