@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, OpenApiResponse  # type: ignore
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, OpenApiResponse
 
 from typing import Type
 
@@ -23,11 +23,11 @@ class UploadImageMixin:
         url_path="upload-image",
         permission_classes=(IsAuthenticatedOrReadOnly,),
     )
-    def upload_image(self, request: Request, pk: int = None) -> Response:  # type: ignore
+    def upload_image(self, request: Request, pk: int = None) -> Response:
         """Endpoint for uploading an image to a specific object"""
 
-        obj = self.get_object()  # type: ignore
-        serializer = self.get_serializer(obj, data=request.data)  # type: ignore
+        obj = self.get_object()
+        serializer = self.get_serializer(obj, data=request.data)
 
         if serializer.is_valid():
             serializer.save()
@@ -41,7 +41,7 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
     serializer_class = ProfileDetailSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
-    def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
+    def get_serializer_class(self) -> Type[ModelSerializer]:
         if self.action == "followers":
             return ProfileFollowersSerializer
         if self.action == "following":
@@ -75,7 +75,7 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         url_path="followers",
         permission_classes=(IsAuthenticatedOrReadOnly,),
     )
-    def followers(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
+    def followers(self, request: Request, pk: int = None) -> Type[Response]:  
         return self._serialize_profile(request)
 
     @extend_schema(
@@ -91,7 +91,7 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         url_path="following",
         permission_classes=(IsAuthenticatedOrReadOnly,),
     )
-    def following(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
+    def following(self, request: Request, pk: int = None) -> Type[Response]:  
         return self._serialize_profile(request)
 
     @extend_schema(
@@ -108,7 +108,7 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         detail=True,
         permission_classes=(IsAuthenticatedOrReadOnly,),
     )
-    def follow_profile_toggle(self, request: Request, pk: int = None) -> Response:  # type: ignore
+    def follow_profile_toggle(self, request: Request, pk: int = None) -> Response:  
         user_profile = request.user.profile
         target_profile = self.get_object()
 
@@ -135,16 +135,16 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
         methods=["DELETE"],
         description="Delete profile and linked user",
     )
-    def destroy(self, request: Request, *args, **kwargs) -> Type[Response]:  # type: ignore
+    def destroy(self, request: Request, *args, **kwargs) -> Type[Response]:  
         """Function delete User with Cascade deleting Profile"""
 
         instance = self.get_object()
         self.perform_destroy(get_user_model().objects.get(pk=instance.user.pk))
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    def get_queryset(self) -> QuerySet[Profile]:  # type: ignore
+    def get_queryset(self) -> QuerySet[Profile]:  
         """Retrieve the profiles with filters"""
-        username = self.request.query_params.get("username")  # type: ignore
+        username = self.request.query_params.get("username")  
 
         queryset = self.queryset
 
@@ -173,7 +173,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
     serializer_class = PostSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
-    def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
+    def get_serializer_class(self) -> Type[ModelSerializer]:  
         """Return the appropriate serializer class based on the request."""
 
         if self.action == "list":
@@ -203,7 +203,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         if self.action in ["retrieve", "update", "partial_update", "destroy"]:
             return self.queryset
 
-        hashtag = self.request.query_params.get("hashtag")  # type: ignore
+        hashtag = self.request.query_params.get("hashtag")  
 
         queryset = self.queryset.filter(
             Q(schedule_post__isnull=True)
@@ -284,7 +284,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         url_path="my_posts",
         permission_classes=(IsAuthenticatedOrReadOnly,),
     )
-    def user_posts(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
+    def user_posts(self, request: Request, pk: int = None) -> Type[Response]:  
         user = self.request.user
         queryset = self.queryset.filter(user=user)
         if queryset:
@@ -309,7 +309,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         url_path="posts_from_follows",
         permission_classes=(IsAuthenticatedOrReadOnly,),
     )
-    def posts_from_follows(self, request: Request, pk: int = None) -> Type[Response]:  # type: ignore
+    def posts_from_follows(self, request: Request, pk: int = None) -> Type[Response]:  
         if request.user.is_authenticated:
             profile = Profile.objects.get(user=request.user)
             following_user_ids = profile.follows.values_list("user_id", flat=True)
@@ -319,7 +319,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
         return Response(
             {"detail": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED
-        )  # type: ignore
+        )  
 
     @extend_schema(
         request=None,
@@ -335,7 +335,7 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
         detail=True,
         permission_classes=(IsAuthenticatedOrReadOnly,),
     )
-    def like_toggle(self, request: Request, pk: int = None) -> Response:  # type: ignore
+    def like_toggle(self, request: Request, pk: int = None) -> Response:  
         user = request.user
         post = self.get_object()
 
@@ -376,7 +376,7 @@ class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
     serializer_class = CommentSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
-    def get_serializer_class(self) -> Type[ModelSerializer]:  # type: ignore
+    def get_serializer_class(self) -> Type[ModelSerializer]:  
         """Return the appropriate serializer class based on the request."""
 
         if self.action == "list":
@@ -403,7 +403,7 @@ class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    def get_queryset(self) -> QuerySet[Comment]:  # type: ignore
+    def get_queryset(self) -> QuerySet[Comment]:  
         return Comment.objects.select_related("post", "user").filter(
             post_id=self.kwargs["post_pk"]
         )
@@ -422,7 +422,7 @@ class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
         detail=True,
         permission_classes=(IsAuthenticatedOrReadOnly,),
     )
-    def like_toggle(self, request: Request, post_pk: int = None, pk: int = None) -> Response:  # type: ignore
+    def like_toggle(self, request: Request, post_pk: int = None, pk: int = None) -> Response:  
         user = request.user
         comment = self.get_object()
 

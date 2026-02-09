@@ -72,7 +72,7 @@ class Comment(ContentBase):
 
 
 class PostLike(models.Model):
-    class Meta:  # type: ignore
+    class Meta:
         unique_together = ("user", "post")
 
     user = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="post_likes")
