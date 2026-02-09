@@ -177,7 +177,10 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 
     queryset = Post.objects.select_related("user")
     serializer_class = PostSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (
+        IsAuthenticated,
+        CanEditOwnProfileOrAdmin,
+    )
 
     def get_serializer_class(self) -> Type[ModelSerializer]:
         """Return the appropriate serializer class based on the request."""
@@ -389,7 +392,10 @@ class PostViewSet(viewsets.ModelViewSet, UploadImageMixin):
 class CommentViewSet(viewsets.ModelViewSet, UploadImageMixin):
     queryset = Comment.objects.select_related("post", "user")
     serializer_class = CommentSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (
+        IsAuthenticated,
+        CanEditOwnProfileOrAdmin,
+    )
 
     def get_serializer_class(self) -> Type[ModelSerializer]:
         """Return the appropriate serializer class based on the request."""
