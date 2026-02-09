@@ -1,5 +1,4 @@
 from social_media.serializers import *
-from user.serializers import UserSerializer
 from social_media.models import CommentLike, Profile, Post, PostLike
 
 from django.db.models.query import QuerySet
@@ -50,8 +49,6 @@ class ProfileViewSet(viewsets.ModelViewSet, UploadImageMixin):
             return ProfileListSerializer
         if self.action == "upload_image":
             return ProfileImageSerializer
-        if self.action == "create":
-            return UserSerializer
         if self.action == "update":
             return ProfileUpdateSerializer
 
