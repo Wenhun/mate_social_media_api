@@ -3,7 +3,7 @@ from rest_framework.request import Request
 
 
 class IsAdminOrIfAuthenticatedReadOnly(BasePermission):
-    def has_permission(self, request: Request):
+    def has_permission(self, request: Request, *args, **kwargs):
         return bool(
             (
                 request.method in SAFE_METHODS
