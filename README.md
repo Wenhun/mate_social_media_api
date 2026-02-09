@@ -50,3 +50,9 @@ Add possibility to schedule Post creation (you can select the time to create the
 - Use appropriate URL routing for different API endpoints.
 - Use appropriate permissions and authentication classes to implement API permissions.
 - Follow best practices for RESTful API design and documentation.
+
+
+# How to run:
+- Copy .env_sample -> .env and populate
+- 'docker-compose up --build'
+- create admin user and create your first post
